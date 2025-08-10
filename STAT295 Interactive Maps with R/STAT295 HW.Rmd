@@ -1,0 +1,249 @@
+---
+title: "STAT295 Homework 1"
+author: "Başak Uğurlu,Damla Başarmış,Zeynep Fenercioğlu"
+date: "2024-04-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Q1
+
+#### i.Reading the Data
+
+```{r}
+# wget https://raw.githubusercontent.com/dhavalpotdar/College-Scorecard-Data-Analysis/master/MERGED_2017_2018_cleaned.csv
+```
+
+#### Change the Name
+
+```{r}
+# mv MERGED_2017_2018_cleaned.csv college_score.csv 
+```
+
+#### Print the Lines 10 Through 60
+
+```{r}
+# head -n 60 college_score.csv | tail -n +10
+```
+
+#### ii.Create a sub-sample of the data set with the following condition: control = Public and city = Montgomery. Add this sub-sample to subsample.csv file.
+
+```{r}
+# awk -F, 'NR==1 || ($2=="Public" && $4=="Montgomery")' college_score.csv > subsample.csv
+```
+
+#### iii.Obtain the frequencies of each cities.
+
+```{r}
+#cut -d, -f3 college_score.csv | sort | uniq -c
+```
+
+### Q2
+
+#### i.
+
+```{r}
+chocolate<-read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-01-18/chocolate.csv")
+head(chocolate,6)
+str(chocolate)
+```
+
+#### There are 2530 observations of 10 variables and it contains int,chr,num.
+
+#### ii.
+
+```{r}
+library(dplyr)
+chocolate_factor<-chocolate%>%
+  mutate_all(as.factor)
+
+```
+
+#### iii.
+
+```{r}
+chocolate_summary<-chocolate%>%
+  na.omit()%>%
+  group_by(company_location)%>%
+  summarize(
+    Mean=mean(rating),
+    Sd=sd(rating),
+    Median=median(rating),
+    range=max(rating)-min(rating)
+  )
+head(chocolate_summary,10)
+```
+
+#### Chile has the most mean value and Belgium has least mean value.Chile's variables are same because standard deviation and range values are 0
+
+#### iv.
+
+```{r}
+q4<-chocolate %>% 
+  subset(country_of_bean_origin=='Colombia' & review_date==2020)
+head(q4)
+```
+
+#### v.
+
+```{r}
+chocolate%>%
+  aggregate(cbind(rating, as.numeric(gsub("%", "", cocoa_percent))) ~ company_location,., mean)
+
+```
+
+#### vi.
+
+```{r}
+q6<-chocolate%>%
+  select(company_manufacturer,company_location,country_of_bean_origin)
+head(q6,10)  
+
+```
+
+#### vii.
+
+```{r}
+q7<-chocolate%>%
+  filter(company_location=='Switzerland',rating>=3.25,rating<=3.5)
+head(q7)
+```
+
+#### viii.
+
+```{r}
+chocolate%>%
+  aggregate(rating~company_location,.,mean)%>%
+  arrange(desc(rating))
+```
+
+#### ix.
+
+```{r}
+chocolate%>%
+  group_by(country_of_bean_origin)%>%
+  filter(company_manufacturer=='Bonnat')%>%
+  count()
+```
+
+#### x.
+
+```{r}
+chocolate %>%
+  mutate(
+    Rating_Percentage=rating*25,
+    Class=ifelse(Rating_Percentage<25,"Low",
+                 ifelse(Rating_Percentage>=25 & Rating_Percentage<50,"Medium",
+                        ifelse(Rating_Percentage>=50 & Rating_Percentage<=87.5,"Tasty",
+                               "Excellent")))
+  ) %>% head()
+```
+
+### Q3
+
+```{r q3,include=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+### i.Reading the data and plotting with facet_wrap
+
+```{r 1,warning=FALSE}
+nmmaps<-read.csv("https://www.cedricscherer.com/data/chicago-nmmaps-custom.csv")
+head(nmmaps)       
+str(nmmaps)
+nmmaps <- nmmaps |> 
+  mutate(date = as.Date(date, format = "%Y-%m-%d"))
+ggplot(data=nmmaps,aes(x=date,y=temp)) +
+  geom_point(alpha=0.5)+
+  facet_wrap(~year,scales="free")+
+  labs(x = "Date", y = "Temperature", title = "Temperature by Year")+
+  scale_x_date(date_labels = "%b", date_breaks = "1 month")+
+  scale_y_continuous(limits = c(min(nmmaps$temp), max(nmmaps$temp)))
+```
+
+Interpretation: We see that in 1999, there were hotter days in summer compared to other years; in 2000, the temperature was cooler between November- January. In 1997 and 1999 temperature goes down below 0.
+
+### ii.Examining the relationship using geom_point
+
+```{r 2}
+nmmaps$season <- factor(nmmaps$season, levels = c("Winter", "Spring", "Summer", "Autumn"))
+season_colors <- c("Winter" = "lightblue",   
+                   "Spring" = "lightgreen",  
+                   "Summer" = "yellow", 
+                   "Autumn" = "orange") 
+ggplot(nmmaps, aes(x = date, y = temp, color = season)) +
+  geom_point(alpha = 0.5) +
+  labs(x = "Date", y = "Temperature", color = "Season", title = "Temperature by Season")+
+  scale_color_manual(values = season_colors)
+```
+
+Interpretation: We see that it gets colder in autumn, and hotter in winter as time passes. We again see that in 1999, there were hotter days in summer compared to other years.
+
+### iii. Relationship between temp and dewpoint
+
+```{r 3}
+correlation <- cor(nmmaps$temp, nmmaps$dewpoint)
+rounded_cor <-round(correlation,3)
+print(paste("Correlation coefficient between temperature and dewpoint:", rounded_cor))
+ggplot(nmmaps, aes(x = temp, y = dewpoint)) +
+  geom_point(alpha = 0.5) +
+  labs(x = "Temperature", y = "Dew Point", title = "Temperature & Dew Point")
+```
+
+Interpretation: As we see from the plot and the correlation coefficient we just calculated as 0.958, there is a strong positive correlation between temperature and dew point since 0.958 is close to 1 and the plot is linear.
+
+### Q4
+
+```{r q4,include=FALSE}
+libraries <- c("ggplot2","sf","rworldmap","tidyverse","magrittr",
+               "leaflet", "dplyr", "rvest", "xml2",
+               "maps","mapdata","RgoogleMaps","lubridate","rnaturalearth","dplyr","rnaturalearthdata","RColorBrewer","httr")
+lapply(libraries, require, character.only = TRUE)
+
+```
+
+```{r map}
+url <- "https://ds.iris.edu/seismon/eventlist/index.phtml"
+
+res <- GET(url)
+html_con <- content(res, "text")
+html_ulke <- read_html(html_con)
+
+tables <- html_ulke |> 
+  html_nodes("table") |> 
+  html_table() 
+earthquake <- as.data.frame(tables)
+str(earthquake)
+earthquake %<>%
+  mutate(Class = ifelse(MAG < 4.5, "Minor",
+                        ifelse(MAG < 5.5, "Moderate", "Major")))
+color_vector <- colorFactor(c("Yellow", "Blue", "Red"),
+                            domain = earthquake$Class)
+earthquake |> 
+  leaflet() |> 
+  addTiles() |> 
+  addCircles(~LON, ~LAT,
+             weight = 10,
+             radius = 90,
+             popup = paste0(
+               "<b>Date: </b>",
+               earthquake$DATE.and.TIME..UTC.,
+               "<br>",
+               "<b>Place: </b>",
+               earthquake$ LOCATION................................Shows.interactive.map.,
+               "<br>",
+               "<b>Depth in km: </b>",
+               earthquake$DEPTHkm,
+               "<br>",
+               "<b>Magnitude: </b>",
+               earthquake$MAG),
+             label = ~LOCATION................................Shows.interactive.map.,
+             color = ~color_vector(Class)) |> 
+  setView(lng = median(earthquake$LON),
+          lat = median(earthquake$LAT),
+          zoom = 2)
+```

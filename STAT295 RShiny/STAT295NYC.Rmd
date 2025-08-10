@@ -1,0 +1,356 @@
+---
+title: "STAT 295 Homework 2"
+author: "Başak Uğurlu 
+Damla Başarmış
+Zeynep Fenercioğlu"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+```{r,include=FALSE}
+library(tidyverse)
+```
+
+```{r}
+#Loading the data.
+data <- read.csv("social_network_ad.csv")
+
+```
+
+```{r}
+#Examining the data.
+head(data)
+```
+
+```{r}
+str(data)
+```
+
+```{r}
+summary(data)
+```
+
+User.ID: This is a unique identifier for each user, which doesn't have a meaningful summary statistic.
+
+Gender: The dataset includes both male and female customers.
+
+Age: The age variable ranges from young adults to older individuals, with a minimum age of 18 and a maximum age of 60.
+
+EstimatedSalary: This variable shows the estimated salary of individuals, ranging from low to high-income levels, with salaries between 15,000 and 150,000.
+
+Purchased: This binary variable indicates the purchase decision, where 0 means no purchase and 1 means a purchase was made. The summary provides the count of purchases and non-purchases.
+
+### i.
+
+```{r}
+# Loading necessary libraries
+library(ggplot2)
+
+# Creating the plot
+ggplot(data, aes(x = EstimatedSalary, y = Purchased)) +
+  geom_jitter(alpha=0.6) +
+  labs(title = "Relationship between Estimated Salary and Purchased",
+       x = "Estimated Salary",
+       y = "Purchased") +
+  theme_minimal()
+
+```
+
+The scatter plot shows the relationship between EstimatedSalary (x-axis) and Purchased (y-axis). Each point represents an individual in the dataset. The Purchased variable is binary, taking the value of 0 or 1, indicating whether the individual purchased a product. From the plot, we can analyze whether there is a clear pattern or trend between the estimated salary of individuals and their likelihood of purchasing a product. For instance, we might look for clusters or trends that indicate higher or lower probabilities of purchasing based on salary. Detailed Analysis Clustering: Observe if there are any clusters of individuals who purchased the product at certain salary ranges. Trend: Determine if there is a positive or negative correlation between salary and purchasing behavior. We see that there is more salary variation at users who purchase, for users who don't purchase there is a cluster on the left part which indicates lower salaries.
+
+### ii.
+
+```{r}
+# Fitting the logistic regression model
+model <- glm(Purchased ~ EstimatedSalary, data = data, family = binomial)
+
+# Summary of the model
+summary(model)
+```
+
+```{r}
+# Extracting coefficients
+coefficients <- summary(model)$coefficients
+coefficients
+
+```
+
+```{r}
+#Odds of purchasing a particular product. The coefficient b_1 represents the change in the log-odds of purchasing a product for a one-unit increase in EstimatedSalary.
+
+# Exponentiating the coefficient for EstimatedSalary
+exp_beta1 <- exp(coefficients["EstimatedSalary", "Estimate"])
+exp_beta1
+
+
+```
+
+Coefficient b_1 is positive, it means that as EstimatedSalary increases, the odds of purchasing a product increase.
+
+### iii.
+
+```{r}
+# Coefficients from the logistic regression model
+beta_0 <- coefficients["(Intercept)", "Estimate"]
+beta_1 <- coefficients["EstimatedSalary", "Estimate"]
+
+# Estimated salary of $22,000
+salary <- 22000
+
+# Calculating the log-odds
+log_odds <- beta_0 + beta_1 * salary
+
+# Converting log-odds to probability
+probability <- exp(log_odds) / (1 + exp(log_odds))
+probability
+```
+
+This means that an individual with an estimated salary of \$22,000 has a predicted probability of 14% of purchasing the product. This finding indicates that while the probability of purchasing increases with estimated salary, it is still moderate for a salary of \$22,000, reflecting the logistic nature of the model where probabilities range between 0 and 1 but do not increase linearly.
+
+### iv.
+
+```{r}
+# Converting Gender to binary variables
+data$GenderBinary <- ifelse(data$Gender == "Male", 1, 0)
+
+# Checking the transformation
+head(data)
+```
+
+```{r}
+# Fitting the logistic regression model with GenderBinary
+model_gender <- glm(Purchased ~ GenderBinary, data = data, family = binomial)
+
+# Summary of the model
+summary(model_gender)
+```
+
+```{r}
+# Extracting coefficients for the gender model
+coefficients_gender <- summary(model_gender)$coefficients
+coefficients_gender
+
+
+```
+
+```{r}
+# Exponentiating the coefficient for GenderBinary
+exp_beta1_gender <- exp(coefficients_gender["GenderBinary", "Estimate"])
+exp_beta1_gender
+```
+
+The coefficient b_1 is positive, it indicates that males have higher odds of purchasing the product compared to females. This means that the odds of purchasing the product for males are approximately 83% of the odds for females, indicating that males have higher odds of purchasing the product compared to females.
+
+### v.
+
+```{r}
+# Creating the plot
+ggplot(data, aes(x = GiftTicket, y = Purchased)) +
+  geom_jitter(alpha=0.6) +
+  labs(title = "Impact of Gift Ticket on Purchasing",
+       x = "Gift Ticket",
+       y = "Purchased") +
+  theme_minimal()
+
+```
+
+The plot shows the relationship between having a gift ticket (GiftTicket) and purchasing a product (Purchased). Each point represents purchases (1) and non-purchases (0) for individuals with and without a gift ticket. From the plot, we can observe the amount of purchases among individuals who received a gift ticket is significantly more compared to those who did not.
+
+```{r}
+# Fitting the logistic regression model with GiftTicket
+model_gift <- glm(Purchased ~ GiftTicket, data = data, family = binomial)
+
+# Summary of the model
+summary(model_gift)
+```
+
+```{r}
+# Extracting coefficients for the gift model
+coefficients_gift <- summary(model_gift)$coefficients
+coefficients_gift
+
+```
+
+The coefficient b_1 is positive, it indicates that individuals with a gift ticket have higher odds of purchasing the product compared to those without.
+
+```{r}
+# Exponentiating the coefficient for GiftTicket
+exp_beta1_gift <- exp(coefficients_gift["GiftTicket", "Estimate"])
+exp_beta1_gift
+```
+
+This means that the odds of purchasing a product for individuals with a gift ticket are approximately 15.77 times higher compared.
+
+### vi.
+
+```{r}
+# Predicting probabilities using the logistic regression model
+predicted_probs <- predict(model_gift, type = "response")
+
+# Adding predicted probabilities to the dataset
+data$PredictedProbability <- predicted_probs
+
+# Grouping the data by GiftTicket and calculating mean predicted probability
+predicted_probs_by_gift <- aggregate(PredictedProbability ~ GiftTicket, data = data, FUN = mean)
+predicted_probs_by_gift
+```
+
+```{r,include=FALSE}
+library(shiny)
+library(sqldf)
+```
+
+## Question 2
+
+```{r,include=FALSE}
+library(shiny)
+library(dplyr)
+
+```
+
+```{r}
+#Loading the data
+AB_NYC_2019 <- read.csv("AB_NYC_2019.csv")
+AB_NYC_2019<-as.data.frame(AB_NYC_2019)
+
+
+```
+
+```{r}
+# Define UI for application
+ui <- fluidPage(
+  
+  # Application title
+  titlePanel("Choose Your Airbnb in New York"),
+  
+  # Sidebar with a slider input for user choices
+  sidebarLayout(
+    sidebarPanel(
+      h2("Which neighbourhood is best for your Airbnb?"),
+      br(),
+      sliderInput(inputId = "price", label = "Price", min = 0, max = 2000, value = 500),
+      sliderInput(inputId = "minimum_nights", label = "Minimum Nights", min = 1, max = 365, value = 50),
+      sliderInput(inputId = "number_of_reviews", label = "Number of Reviews", min = 0, max = 500, value = 300),
+      sliderInput(inputId = "reviews_per_month", label = "Reviews Per Month", min = 0, max = 50, value = 30),
+      sliderInput(inputId = "calculated_host_listings_count", label = "Calculated Host Listing Count", min = 1, max = 30, value = 20),
+      sliderInput(inputId = "availability_365", label = "Availability (days per year)", min = 0, max = 365, value = 200)
+    ),
+    #Texts that will be seen in the webpage
+    mainPanel(
+      uiOutput("img"),
+      br(),
+      p(h3("Your Choices:")),
+      textOutput("Price_out"),
+      textOutput("Minimum_nights_out"),
+      textOutput("number_of_reviews_out"),
+      textOutput("reviews_per_month_out"),
+      textOutput("calculated_host_listings_count_out"),
+      textOutput("availability_365_out"),
+      br(),
+      p(h2("Best Neighbourhood For You:")),
+      br(),
+      textOutput("Neighbourhood"),
+      br(),
+      br(),
+      p(h4(strong("About the app:"))),
+      p(h5("In the shiny app, the formula considers several factors from the dataset: price, minimum_nights,
+           number_of_reviews, reviews_per_month, calculated_host_listings_count, availability. 
+           Users can choose these factors according to their preferences. The app displays the neighbourhood that fits best to users choices."))
+    )
+  )
+)
+server <- function(input, output) {
+  #The part that will show user input in an organized way
+  output$img <- renderUI({
+    tags$img(src = "https://storage.googleapis.com/kaggle-datasets-images/268833/559075/cf825b5af1f904cd1ea6404039abc88e/dataset-cover.jpg?t=2019-07-18-19-19-53", width = 900, height = 350)
+  })
+  
+  output$Price_out <- renderText({
+    input$Calculate
+    paste("Price:", input$price)
+  })
+  
+  output$Minimum_nights_out <- renderText({
+    input$Calculate
+    paste("Minimum Nights Out:", input$minimum_nights)
+  })
+  
+  output$number_of_reviews_out <- renderText({
+    input$Calculate
+    paste("Number of Reviews:", input$number_of_reviews)
+  })
+  
+  output$reviews_per_month_out <- renderText({
+    input$Calculate
+    paste("Reviews per Month:", input$reviews_per_month)
+  })
+  
+  output$calculated_host_listings_count_out <- renderText({
+    input$Calculate
+    paste("Calculated Host Listings:", input$calculated_host_listings_count)
+  })
+  
+  output$availability_365_out <- renderText({
+    input$Calculate
+    paste("Availability:", input$availability_365)
+  })
+  
+  #Formula matches user choices with neighborhoods by calculating neighborhoods first and third quartiles for each variable, and compares whether user input falls between them to make a good estimation without outliers, around median. It shows the neighborhood with the most matches.
+  result <- reactive({
+    AB_NYC_2019 <- read.csv("AB_NYC_2019.csv")
+    
+    quartiles <- AB_NYC_2019 %>%
+      group_by(neighbourhood_group) %>%
+      summarize(
+        Price_Q1 = quantile(price, 0.25, na.rm = TRUE),
+        Price_Q3 = quantile(price, 0.75, na.rm = TRUE),
+        Minimum_Nights_Q1 = quantile(minimum_nights, 0.25, na.rm = TRUE),
+        Minimum_Nights_Q3 = quantile(minimum_nights, 0.75, na.rm = TRUE),
+        Number_of_Reviews_Q1 = quantile(number_of_reviews, 0.25, na.rm = TRUE),
+        Number_of_Reviews_Q3 = quantile(number_of_reviews, 0.75, na.rm = TRUE),
+        Reviews_per_Month_Q1 = quantile(reviews_per_month, 0.25, na.rm = TRUE),
+        Reviews_per_Month_Q3 = quantile(reviews_per_month, 0.75, na.rm = TRUE),
+        Calculated_Host_Listings_Count_Q1 = quantile(calculated_host_listings_count, 0.25, na.rm = TRUE),
+        Calculated_Host_Listings_Count_Q3 = quantile(calculated_host_listings_count, 0.75, na.rm = TRUE),
+        Availability_Q1 = quantile(availability_365, 0.25, na.rm = TRUE),
+        Availability_Q3 = quantile(availability_365, 0.75, na.rm = TRUE)
+      )
+    
+    matches <- quartiles %>%
+      mutate(
+        Price_Match = input$price >= Price_Q1 & input$price <= Price_Q3,
+        Minimum_Nights_Match = input$minimum_nights >= Minimum_Nights_Q1 & input$minimum_nights <= Minimum_Nights_Q3,
+        Number_of_Reviews_Match = input$number_of_reviews >= Number_of_Reviews_Q1 & input$number_of_reviews <= Number_of_Reviews_Q3,
+        Reviews_per_Month_Match = input$reviews_per_month >= Reviews_per_Month_Q1 & input$reviews_per_month <= Reviews_per_Month_Q3,
+        Calculated_Host_Listings_Count_Match = input$calculated_host_listings_count >= Calculated_Host_Listings_Count_Q1 & input$calculated_host_listings_count <= Calculated_Host_Listings_Count_Q3,
+        Availability_Match = input$availability_365 >= Availability_Q1 & input$availability_365 <= Availability_Q3,
+        Match_Score = Price_Match + Minimum_Nights_Match + Number_of_Reviews_Match + Reviews_per_Month_Match + Calculated_Host_Listings_Count_Match + Availability_Match
+      ) %>%
+      filter(Match_Score > 0) %>%
+      arrange(desc(Match_Score))
+    
+    if (nrow(matches) == 0) {
+      return("No neighbourhood matches the given inputs within their 25th and 75th percentiles.")
+    } else {
+      return(paste("The best matching neighbourhood based on your inputs:", 
+                   matches$neighbourhood_group[1])) # It shows only the most matched neighborhood.
+    }
+  })
+  
+  output$Neighbourhood <- renderText({
+    result()
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+```{r}
+
+```
